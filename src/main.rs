@@ -19,10 +19,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     let size = terminal.size()?;
-    let width = (size.width as i32 / 2) - 2;
-    let height = (size.height as i32 - 4) - 2;
+    let effective_width = (size.width as i32 - 4) / 2;
+    let score_area_height = ((size.height as f32 - 2.0) * 0.1).floor() as i32;
+    let effective_height = size.height as i32 - 2 - score_area_height;
 
-    let mut game_state = GameState::new(width, height);
+    let mut game_state = GameState::new(effective_width, effective_height);
     let mut last_update = Instant::now();
 
     loop {
@@ -30,19 +31,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         if crossterm::event::poll(Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
-                let changed = match key.code {
-                    KeyCode::Char('q') => {
+                if game_state.game_over {
+                    if let KeyCode::Char('q') = key.code {
                         break;
                     }
-                    KeyCode::Left => game_state.change_direction(game::Direction::Left),
-                    KeyCode::Right => game_state.change_direction(game::Direction::Right),
-                    KeyCode::Up => game_state.change_direction(game::Direction::Up),
-                    KeyCode::Down => game_state.change_direction(game::Direction::Down),
-                    _ => false,
-                };
-                if changed {
-                    game_state.update();
-                    last_update = Instant::now();
+                } else {
+                    let changed = match key.code {
+                        KeyCode::Char('q') => {
+                            break;
+                        }
+                        KeyCode::Left => game_state.change_direction(game::Direction::Left),
+                        KeyCode::Right => game_state.change_direction(game::Direction::Right),
+                        KeyCode::Up => game_state.change_direction(game::Direction::Up),
+                        KeyCode::Down => game_state.change_direction(game::Direction::Down),
+                        _ => false,
+                    };
+                    if changed {
+                        game_state.update();
+                        last_update = Instant::now();
+                    }
                 }
             }
         }

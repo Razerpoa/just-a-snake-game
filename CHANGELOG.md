@@ -27,3 +27,4 @@ This is the initial version of the snake game, built from the ground up.
 
 *   Prevented the snake from dying when the user quickly presses keys for opposite directions.
 *   The game board now correctly resizes with the terminal, preventing the snake from dying unexpectedly at the edges of the screen.
+*   Resolved rendering issues causing "invisible lines" and gaps in the snake's tail by ensuring consistent character widths and accurate board dimension calculations.
