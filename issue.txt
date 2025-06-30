@@ -1,2 +1,0 @@
-the apple sometime didn't displayed
-when the snake is moving at the edge the whole snake gone

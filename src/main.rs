@@ -19,8 +19,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     let size = terminal.size()?;
-    let width = size.width as i32 / 2;
-    let height = size.height as i32 - 4;
+    let width = (size.width as i32 / 2) - 2;
+    let height = (size.height as i32 - 4) - 2;
 
     let mut game_state = GameState::new(width, height);
     let mut last_update = Instant::now();

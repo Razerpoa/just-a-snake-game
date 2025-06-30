@@ -79,16 +79,6 @@ pub fn ui(f: &mut Frame, game_state: &GameState) {
         let area = centered_rect(60, 20, f.size());
         f.render_widget(game_over_block, area);
     }
-
-    if game_state.game_over {
-        let game_over_text = "Game Over! Press 'q' to quit.";
-        let game_over_block = Block::default()
-            .title(game_over_text)
-            .borders(Borders::ALL)
-            .style(Style::default().fg(Color::Red));
-        let area = centered_rect(60, 20, f.size());
-        f.render_widget(game_over_block, area);
-    }
 }
 
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
