@@ -1,7 +1,8 @@
 use std::collections::LinkedList;
 use rand::Rng;
+use std::time::{Duration, Instant};
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub struct Coordinates {
     pub x: i32,
     pub y: i32,
@@ -15,6 +16,7 @@ pub enum Direction {
     Right,
 }
 
+#[derive(Clone)]
 pub struct Snake {
     pub body: LinkedList<Coordinates>,
     pub direction: Direction,
@@ -31,6 +33,10 @@ impl Snake {
             });
         }
         Self { body, direction, digesting: false }
+    }
+
+    pub fn get_tail(&self) -> Coordinates {
+        *self.body.back().unwrap()
     }
 
     pub fn get_head(&self) -> Coordinates {
@@ -68,6 +74,7 @@ impl Snake {
     }
 }
 
+#[derive(Clone)]
 pub struct Food {
     pub position: Coordinates,
 }
@@ -93,6 +100,14 @@ pub struct Game {
     pub state: GameState,
 }
 
+impl Clone for Game {
+    fn clone(&self) -> Self {
+        Game {
+            state: self.state.clone(),
+        }
+    }
+}
+
 impl Game {
     pub fn new(width: i32, height: i32) -> Self {
         Self {
@@ -100,11 +115,18 @@ impl Game {
         }
     }
 
-    pub fn is_collision(&self, pos: &Coordinates) -> bool {
+    pub fn is_collision(&self, pos: &Coordinates, ignore_tail: bool) -> bool {
         if pos.x < 0 || pos.x >= self.state.width || pos.y < 0 || pos.y >= self.state.height {
             return true; // Wall collision
         }
-        for segment in self.state.snake.body.iter() {
+
+        let body_iter = if ignore_tail {
+            self.state.snake.body.iter().take(self.state.snake.body.len().saturating_sub(1))
+        } else {
+            self.state.snake.body.iter().take(self.state.snake.body.len())
+        };
+
+        for segment in body_iter {
             if *segment == *pos {
                 return true; // Self collision
             }
@@ -122,6 +144,35 @@ pub struct GameState {
     pub height: i32,
     pub last_direction: Option<Direction>,
     pub speed: u64,
+    pub cell_size: f32,
+    pub path_to_food_found: bool,
+    pub path_to_tail_found: bool,
+    pub path_to_tail_after_eat_found: bool,
+    pub is_trapped: bool,
+    pub ai_strategy: String,
+    pub speed_change_timer: Instant,
+}
+
+impl Clone for GameState {
+    fn clone(&self) -> Self {
+        Self {
+            snake: self.snake.clone(),
+            food: self.food.clone(),
+            score: self.score,
+            game_over: self.game_over,
+            width: self.width,
+            height: self.height,
+            last_direction: self.last_direction,
+            speed: self.speed,
+            cell_size: self.cell_size,
+            path_to_food_found: self.path_to_food_found,
+            path_to_tail_found: self.path_to_tail_found,
+            path_to_tail_after_eat_found: self.path_to_tail_after_eat_found,
+            is_trapped: self.is_trapped,
+            ai_strategy: self.ai_strategy.clone(),
+            speed_change_timer: self.speed_change_timer,
+        }
+    }
 }
 
 impl GameState {
@@ -138,15 +189,28 @@ impl GameState {
             height,
             last_direction: None,
             speed: 5,
+            cell_size: 20.0,
+            path_to_food_found: false,
+            path_to_tail_found: false,
+            path_to_tail_after_eat_found: false,
+            is_trapped: false,
+            ai_strategy: "None".to_string(),
+            speed_change_timer: Instant::now(),
         }
     }
 
     pub fn increase_speed(&mut self) {
-        self.speed = (self.speed + 1).min(1000);
+        if self.speed_change_timer.elapsed() >= Duration::from_millis(100) {
+            self.speed = (self.speed + 1).min(1000);
+            self.speed_change_timer = Instant::now();
+        }
     }
 
     pub fn decrease_speed(&mut self) {
-        self.speed = (self.speed - 1).max(1);
+        if self.speed_change_timer.elapsed() >= Duration::from_millis(100) {
+            self.speed = (self.speed - 1).max(1);
+            self.speed_change_timer = Instant::now();
+        }
     }
 
 

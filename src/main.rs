@@ -1,17 +1,13 @@
 pub mod game;
-pub mod ui;
+pub mod graphics;
 pub mod ai;
 
-use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
-use ratatui::{backend::CrosstermBackend, Terminal};
-use std::{io, time::{Duration, Instant}};
+use macroquad::prelude::*;
 use clap::Parser;
 use crate::game::Game;
 use crate::ai::find_path;
+use crate::graphics::draw_game;
+use std::time::{Duration, Instant};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -19,67 +15,53 @@ struct Args {
     /// The initial speed of the game
     #[arg(short, long, default_value_t = 5)]
     speed: u64,
+    /// The size of each cell in pixels
+    #[arg(long, default_value_t = 20.0)]
+    cell_size: f32,
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[macroquad::main("Snake AI")]
+async fn main() {
     let args = Args::parse();
 
-    // setup terminal
-    enable_raw_mode()?;
-    let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-    let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
-
-    let size = terminal.size()?;
-    let effective_width = (size.width as i32 - 4) / 2 - 6;
-    let score_area_height = ((size.height as f32 - 2.0) * 0.1).floor() as i32;
-    let effective_height = size.height as i32 - 2 - score_area_height - 6;
-
-    let mut game = Game::new(effective_width, effective_height);
+    let mut game = Game::new(screen_width() as i32 / args.cell_size as i32, screen_height() as i32 / args.cell_size as i32);
     game.state.speed = args.speed;
+    game.state.cell_size = args.cell_size;
+
     let mut last_update = Instant::now();
 
     loop {
-        terminal.draw(|f| ui::ui(f, &game.state))?;
-
-        if crossterm::event::poll(Duration::from_millis(1))? {
-            if let Event::Key(key) = event::read()? {
-                if game.state.game_over {
-                    if let KeyCode::Char('q') = key.code {
-                        break;
-                    }
-                } else {
-                    match key.code {
-                        KeyCode::Char('q') => break,
-                        KeyCode::PageUp => game.state.increase_speed(),
-                        KeyCode::PageDown => game.state.decrease_speed(),
-                        _ => {}
-                    }
-                }
-            }
+        if is_key_pressed(KeyCode::Q) {
+            break;
         }
 
-        if !game.state.game_over {
-            if let Some(direction) = find_path(&game) {
-                game.state.change_direction(direction);
+        if game.state.game_over {
+            if is_key_pressed(KeyCode::Space) {
+                game = Game::new(screen_width() as i32 / args.cell_size as i32, screen_height() as i32 / args.cell_size as i32);
+                game.state.speed = game.state.speed; // Retain previous speed
+                game.state.cell_size = args.cell_size;
+            }
+        } else {
+            if is_key_down(KeyCode::PageUp) {
+                game.state.increase_speed();
+            }
+            if is_key_down(KeyCode::PageDown) {
+                game.state.decrease_speed();
             }
 
-            if last_update.elapsed() >= Duration::from_millis(200 / game.state.speed) {
+            let time_per_frame = Duration::from_millis(200 / game.state.speed);
+            if last_update.elapsed() >= time_per_frame {
+                if let Some(direction) = find_path(&mut game) {
+                    game.state.change_direction(direction);
+                }
                 game.state.update();
                 last_update = Instant::now();
             }
         }
+
+        clear_background(BLACK);
+        draw_game(&game.state);
+
+        next_frame().await
     }
-
-    // restore terminal
-    disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    )?;
-    terminal.show_cursor()?;
-
-    Ok(())
 }
