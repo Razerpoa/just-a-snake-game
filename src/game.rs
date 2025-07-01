@@ -33,6 +33,10 @@ impl Snake {
         Self { body, direction, digesting: false }
     }
 
+    pub fn get_head(&self) -> Coordinates {
+        *self.body.front().unwrap()
+    }
+
     pub fn move_forward(&mut self) {
         let head = self.body.front().unwrap();
         let new_head = match self.direction {
@@ -82,6 +86,30 @@ impl Food {
             };
         }
         Self { position }
+    }
+}
+
+pub struct Game {
+    pub state: GameState,
+}
+
+impl Game {
+    pub fn new(width: i32, height: i32) -> Self {
+        Self {
+            state: GameState::new(width, height),
+        }
+    }
+
+    pub fn is_collision(&self, pos: &Coordinates) -> bool {
+        if pos.x < 0 || pos.x >= self.state.width || pos.y < 0 || pos.y >= self.state.height {
+            return true; // Wall collision
+        }
+        for segment in self.state.snake.body.iter() {
+            if *segment == *pos {
+                return true; // Self collision
+            }
+        }
+        false
     }
 }
 
