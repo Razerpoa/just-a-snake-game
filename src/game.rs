@@ -76,13 +76,13 @@ impl Food {
     pub fn new(width: i32, height: i32, snake_body: &LinkedList<Coordinates>) -> Self {
         let mut rng = rand::thread_rng();
         let mut position = Coordinates {
-            x: rng.gen_range(0..width),
-            y: rng.gen_range(0..height),
+            x: rng.gen_range(2..width - 2),
+            y: rng.gen_range(2..height - 2),
         };
         while snake_body.contains(&position) {
             position = Coordinates {
-                x: rng.gen_range(0..width),
-                y: rng.gen_range(0..height),
+                x: rng.gen_range(2..width - 2),
+                y: rng.gen_range(2..height - 2),
             };
         }
         Self { position }
@@ -142,7 +142,7 @@ impl GameState {
     }
 
     pub fn increase_speed(&mut self) {
-        self.speed = (self.speed + 1).min(10);
+        self.speed = (self.speed + 1).min(1000);
     }
 
     pub fn decrease_speed(&mut self) {

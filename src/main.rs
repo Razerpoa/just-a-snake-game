@@ -32,9 +32,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     let size = terminal.size()?;
-    let effective_width = (size.width as i32 - 4) / 2 - 2;
+    let effective_width = (size.width as i32 - 4) / 2 - 6;
     let score_area_height = ((size.height as f32 - 2.0) * 0.1).floor() as i32;
-    let effective_height = size.height as i32 - 2 - score_area_height - 2;
+    let effective_height = size.height as i32 - 2 - score_area_height - 6;
 
     let mut game = Game::new(effective_width, effective_height);
     game.state.speed = args.speed;
@@ -43,7 +43,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     loop {
         terminal.draw(|f| ui::ui(f, &game.state))?;
 
-        if crossterm::event::poll(Duration::from_millis(100))? {
+        if crossterm::event::poll(Duration::from_millis(1))? {
             if let Event::Key(key) = event::read()? {
                 if game.state.game_over {
                     if let KeyCode::Char('q') = key.code {
@@ -52,8 +52,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 } else {
                     match key.code {
                         KeyCode::Char('q') => break,
-                        KeyCode::Char('+') => game.state.increase_speed(),
-                        KeyCode::Char('-') => game.state.decrease_speed(),
+                        KeyCode::PageUp => game.state.increase_speed(),
+                        KeyCode::PageDown => game.state.decrease_speed(),
                         _ => {}
                     }
                 }
