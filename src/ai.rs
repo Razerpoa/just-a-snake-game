@@ -95,8 +95,9 @@ pub fn find_path(game: &mut Game) -> Option<Direction> {
     game.state.path_to_tail_after_eat_found = false;
     game.state.is_trapped = false;
     game.state.ai_strategy = "Fallback".to_string(); // Default to fallback
+    
 
-    // 1. Try to find a path to the food and check if it's safe.
+    // 1. Try to find a path to the food.
     let food_pos = Pos(game.state.food.position.x, game.state.food.position.y);
     let result_to_food = astar(
         &start,
@@ -105,15 +106,17 @@ pub fn find_path(game: &mut Game) -> Option<Direction> {
         |p| *p == food_pos,
     );
 
-    let mut food_path_is_safe = false;
-    if let Some((_path, _)) = &result_to_food {
+    if let Some((path, _)) = result_to_food {
         game.state.path_to_food_found = true;
-
+        
+        // Simulate the game state after eating the food to check for traps.
         let mut future_game = game.clone();
         let mut future_snake_body = game.state.snake.body.clone();
-        future_snake_body.push_front(game.state.food.position);
+        future_snake_body.push_front(game.state.food.position); // New head is the food position.
+        // The tail doesn't get removed because it just ate.
         future_game.state.snake.body = future_snake_body;
 
+        // Check for an escape path in this future state.
         let future_head_pos = future_game.state.snake.get_head();
         let future_tail_pos = future_game.state.snake.get_tail();
         let future_start = Pos(future_head_pos.x, future_head_pos.y);
@@ -121,18 +124,27 @@ pub fn find_path(game: &mut Game) -> Option<Direction> {
 
         let escape_path = astar(
             &future_start,
-            |p| p.successors(&future_game, true),
+            |p| p.successors(&future_game, true), // Allow path to go over the tail.
             |p| p.distance(&future_goal),
             |p| *p == future_goal,
         );
 
         if escape_path.is_some() {
             game.state.path_to_tail_after_eat_found = true;
-            food_path_is_safe = true;
+            
+            // The path is safe. Return the first step.
+            if path.len() > 1 {
+                if let Some(direction) = get_direction(&head, &path[1].to_coordinates()) {
+                    game.state.ai_strategy = "Food".to_string();
+                    return Some(direction);
+                }
+            }
         }
+        
+        // If no escape path, it's a trap. Fall through to survival logic.
     }
 
-    // 2. Try to find a path to the tail.
+    // 2. If no safe path to food, try to find a path to the tail.
     let tail_pos = {
         let tail = game.state.snake.get_tail();
         Pos(tail.x, tail.y)
@@ -144,66 +156,19 @@ pub fn find_path(game: &mut Game) -> Option<Direction> {
         |p| *p == tail_pos,
     );
 
-    let mut tail_path_found = false;
-    if let Some((_path, _)) = &result_to_tail {
+    if let Some((path, _)) = result_to_tail {
         game.state.path_to_tail_found = true;
-        tail_path_found = true;
-    }
-
-    // Decision logic based on calculated paths and safety.
-
-    // Strategy 1: Go to food if safe.
-    if game.state.path_to_food_found && food_path_is_safe {
-        if let Some((path, _)) = result_to_food {
-            if path.len() > 1 {
-                if let Some(direction) = get_direction(&head, &path[1].to_coordinates()) {
-                    game.state.ai_strategy = "Food".to_string();
-                    return Some(direction);
-                }
+        
+        if path.len() > 1 {
+            if let Some(direction) = get_direction(&head, &path[1].to_coordinates()) {
+                game.state.ai_strategy = "Tail".to_string();
+                return Some(direction);
             }
         }
     }
 
-    // Strategy 2: Fill available space if eating food is not safe but tail is reachable.
-    // This is the user's requested condition.
-    if game.state.path_to_food_found && !food_path_is_safe && tail_path_found {
-        let best_move = [
-            Direction::Right,
-            Direction::Left,
-            Direction::Up,
-            Direction::Down,
-        ]
-        .iter()
-        .filter(|d| !game.is_collision(&get_next_pos(d, &head), false))
-        .max_by_key(|d| {
-            let next_pos = get_next_pos(d, &head);
-            let mut temp_game = game.clone();
-            temp_game.state.snake.body.push_front(next_pos);
-            if !temp_game.state.snake.digesting {
-                temp_game.state.snake.body.pop_back();
-            }
-            count_reachable_space(&next_pos, &temp_game)
-        });
-
-        if let Some(direction) = best_move {
-            game.state.ai_strategy = "Space-Fill (Conditional)".to_string();
-            return Some(*direction);
-        }
-    }
-
-    // Strategy 3: Go to tail if a path to tail exists (and not handled by conditional space-fill).
-    if tail_path_found {
-        if let Some((path, _)) = result_to_tail {
-            if path.len() > 1 {
-                if let Some(direction) = get_direction(&head, &path[1].to_coordinates()) {
-                    game.state.ai_strategy = "Tail".to_string();
-                    return Some(direction);
-                }
-            }
-        }
-    }
-
-    // Strategy 4: Fallback to general space-fill (if no other strategy applies).
+    // 3. If no path to tail, find the move that leads to the most open space.
+    
     let best_move = [
         Direction::Right,
         Direction::Left,
@@ -223,12 +188,13 @@ pub fn find_path(game: &mut Game) -> Option<Direction> {
     });
 
     if let Some(direction) = best_move {
-        game.state.ai_strategy = "Space-Fill (Fallback)".to_string();
-        return Some(*direction);
+        game.state.ai_strategy = "Space-Fill".to_string();
+        
+        Some(*direction)
     } else {
-        // Strategy 5: Trapped.
+        // 4. If no move is possible, it's trapped.
         game.state.is_trapped = true;
         game.state.ai_strategy = "Trapped Fallback".to_string();
-        return Some(game.state.snake.direction);
+        Some(game.state.snake.direction)
     }
 }
