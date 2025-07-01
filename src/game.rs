@@ -121,6 +121,7 @@ pub struct GameState {
     pub width: i32,
     pub height: i32,
     pub last_direction: Option<Direction>,
+    pub speed: u64,
 }
 
 impl GameState {
@@ -136,8 +137,18 @@ impl GameState {
             width,
             height,
             last_direction: None,
+            speed: 5,
         }
     }
+
+    pub fn increase_speed(&mut self) {
+        self.speed = (self.speed + 1).min(10);
+    }
+
+    pub fn decrease_speed(&mut self) {
+        self.speed = (self.speed - 1).max(1);
+    }
+
 
     pub fn update(&mut self) {
         if self.game_over {

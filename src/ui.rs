@@ -14,7 +14,8 @@ pub fn ui(f: &mut Frame, game_state: &GameState) {
         .split(f.size());
 
     let score_text = format!("Score: {}", game_state.score);
-    let score_paragraph = Paragraph::new(score_text)
+    let speed_text = format!("Speed: {}", game_state.speed);
+    let score_paragraph = Paragraph::new(format!("{} | {}", score_text, speed_text))
         .style(Style::default().add_modifier(Modifier::BOLD))
         .alignment(Alignment::Center);
     f.render_widget(score_paragraph, chunks[0]);
