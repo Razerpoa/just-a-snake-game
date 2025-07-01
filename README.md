@@ -48,5 +48,4 @@ cargo run --release
 *   **Arrow Keys:** Move the snake (Up, Down, Left, Right).
 *   **PageUp:** Increase the game speed.
 *   **PageDown:** Decrease the game speed.
-*   **a:** Toggle the AI player on or off.
 *   **q:** Quit the game.
