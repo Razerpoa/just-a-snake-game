@@ -1,5 +1,6 @@
 pub mod game;
 pub mod ui;
+pub mod ai;
 
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
@@ -8,7 +9,8 @@ use crossterm::{
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
 use std::{io, time::{Duration, Instant}};
-use crate::game::GameState;
+use crate::game::Game;
+use crate::ai::find_path;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // setup terminal
@@ -23,40 +25,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let score_area_height = ((size.height as f32 - 2.0) * 0.1).floor() as i32;
     let effective_height = size.height as i32 - 2 - score_area_height - 2;
 
-    let mut game_state = GameState::new(effective_width, effective_height);
+    let mut game = Game::new(effective_width, effective_height);
     let mut last_update = Instant::now();
 
     loop {
-        terminal.draw(|f| ui::ui(f, &game_state))?;
+        terminal.draw(|f| ui::ui(f, &game.state))?;
 
         if crossterm::event::poll(Duration::from_millis(100))? {
             if let Event::Key(key) = event::read()? {
-                if game_state.game_over {
+                if game.state.game_over {
                     if let KeyCode::Char('q') = key.code {
                         break;
                     }
-                } else {
-                    let changed = match key.code {
-                        KeyCode::Char('q') => {
-                            break;
-                        }
-                        KeyCode::Left => game_state.change_direction(game::Direction::Left),
-                        KeyCode::Right => game_state.change_direction(game::Direction::Right),
-                        KeyCode::Up => game_state.change_direction(game::Direction::Up),
-                        KeyCode::Down => game_state.change_direction(game::Direction::Down),
-                        _ => false,
-                    };
-                    if changed {
-                        game_state.update();
-                        last_update = Instant::now();
-                    }
+                } else if let KeyCode::Char('q') = key.code {
+                    break;
                 }
             }
         }
 
-        if !game_state.game_over && last_update.elapsed() >= Duration::from_millis(200) {
-            game_state.update();
-            last_update = Instant::now();
+        if !game.state.game_over {
+            if let Some(direction) = find_path(&game) {
+                game.state.change_direction(direction);
+            }
+
+            if last_update.elapsed() >= Duration::from_millis(200) {
+                game.state.update();
+                last_update = Instant::now();
+            }
         }
     }
 
