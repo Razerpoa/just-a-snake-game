@@ -38,7 +38,7 @@ async fn main() {
         if game.state.game_over {
             if is_key_pressed(KeyCode::Space) {
                 game = Game::new(screen_width() as i32 / args.cell_size as i32, screen_height() as i32 / args.cell_size as i32);
-                game.state.speed = game.state.speed; // Retain previous speed
+                game.state.speed = args.speed; // Retain previous speed
                 game.state.cell_size = args.cell_size;
             }
         } else {
