@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.0 - 2025-07-01
+
+### Changed
+
+*   **Graphical User Interface (GUI):**
+    *   Transitioned from a Terminal User Interface (TUI) using `ratatui` to a Graphical User Interface (GUI) using `macroquad` for rendering.
+    *   Updated game controls and command-line options to reflect the new graphical environment.
+
+### Added
+
+*   **License:** Added MIT License file.
+
 ## Snake Game
 
 This is the initial version of the snake game, built from the ground up.
