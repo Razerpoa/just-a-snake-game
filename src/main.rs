@@ -10,7 +10,7 @@ use crossterm::{
 use ratatui::{backend::CrosstermBackend, Terminal};
 use std::{io, time::{Duration, Instant}};
 use clap::Parser;
-use crate::game::{Game, GameState};
+use crate::game::Game;
 use crate::ai::find_path;
 
 #[derive(Parser, Debug)]
