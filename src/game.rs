@@ -200,14 +200,14 @@ impl GameState {
     }
 
     pub fn increase_speed(&mut self) {
-        if self.speed_change_timer.elapsed() >= Duration::from_millis(100) {
+        if self.speed_change_timer.elapsed() >= Duration::from_millis(50) {
             self.speed = (self.speed + 1).min(1000);
             self.speed_change_timer = Instant::now();
         }
     }
 
     pub fn decrease_speed(&mut self) {
-        if self.speed_change_timer.elapsed() >= Duration::from_millis(100) {
+        if self.speed_change_timer.elapsed() >= Duration::from_millis(50) {
             self.speed = (self.speed - 1).max(1);
             self.speed_change_timer = Instant::now();
         }
